@@ -1,0 +1,292 @@
+:root{
+  --bg:#f5f6f8; --card:#fff; --ink:#1a1f26; --mute:#6b7580; --line:#e2e6ea;
+  --accent:#1d4ed8; --ev:#0a8f5b; --bad:#d0402c; --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+/* 画面を縦に区切り、スクロールするのは下の .scroll だけにする。
+   ページ全体がスクロールすると地図が半端に切れて、現在地の見当がつかなくなる。 */
+body{
+  background:var(--bg); color:var(--ink);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Segoe UI",Roboto,sans-serif;
+  display:flex; flex-direction:column;
+  height:100vh; height:100dvh;
+  overflow:hidden;
+  overscroll-behavior:none;
+}
+.scroll{
+  flex:1 1 auto; min-height:0; overflow-y:auto;
+  -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+h1,h2,h3,h4{margin:0;font-weight:700}
+button{font:inherit;cursor:pointer}
+
+header{
+  flex:0 0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);
+}
+.hd h1{font-size:19px;letter-spacing:-.01em}
+.hd p{margin:2px 0 0;font-size:13px;color:var(--mute)}
+#langs{display:flex;gap:4px;flex-wrap:wrap}
+.lang{
+  border:1px solid var(--line);background:#fff;color:var(--mute);
+  border-radius:999px;padding:6px 12px;font-size:13px;
+}
+.lang.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* 地図と階層バーは画面上部に固定する。スクロールするのは下だけ。 */
+#map{flex:0 0 38vh;flex-basis:38dvh;min-height:200px;background:#dfe3e8;transition:flex-basis .2s}
+@media(min-width:900px){#map{flex-basis:46dvh}}
+/* 案内中は手順のほうが大事なので地図を少し縮め、カードが画面に収まるようにする */
+body.nav-on #map{flex-basis:29dvh}
+body.nav-on .floorbar{padding:6px 12px}
+/* 案内中に凡例やデータ出典が出ていると手順が埋もれる */
+body.nav-on footer{display:none}
+
+.floorbar{
+  flex:0 0 auto;
+  display:flex;align-items:center;gap:10px;padding:8px 12px;
+  background:var(--card);border-bottom:1px solid var(--line);
+  overflow-x:auto;white-space:nowrap;
+}
+.floorbar>span{font-size:12px;color:var(--mute);flex:0 0 auto}
+#floors{display:flex;gap:6px}
+.floor{
+  border:1px solid var(--line);background:#fff;border-radius:8px;
+  padding:6px 10px;font-size:13px;color:var(--ink);flex:0 0 auto;
+}
+.floor.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+main{padding:14px;max-width:900px;margin:0 auto}
+
+.profrow{margin:0 0 14px}
+/* 条件の切り替えは主な操作ではないので、出発地・目的地より明確に小さくする */
+/* 横スクロールにすると車椅子のグループが画面外に隠れて気づかれないので折り返す */
+.pills{display:flex;flex-wrap:wrap;gap:8px 10px}
+.pillgrp{display:inline-flex;gap:0;flex:0 0 auto;border:1px solid var(--line);border-radius:999px;background:#fff;overflow:hidden}
+.pill{
+  border:0;background:transparent;color:var(--mute);
+  padding:7px 12px;font-size:12.5px;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;line-height:1.2;
+}
+.pill+.pill{border-left:1px solid var(--line)}
+.pill i{font-style:normal;font-size:14px}
+.pill.on{background:var(--accent);color:#fff}
+.profdesc{margin:6px 2px 0;font-size:11.5px;color:var(--mute)}
+
+/* 縦移動のイラスト。文字が読めなくても何をするか伝わるように大きく出す。 */
+.illust{
+  background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:6px;margin:2px 0 10px;
+}
+.illust svg{display:block;width:100%;height:auto;max-height:132px}
+.steps .illust{max-width:210px;margin:6px 0 2px}
+.steps .illust svg{max-height:92px}
+
+.crumbs{display:flex;align-items:stretch;gap:8px;margin-bottom:14px}
+.crumb{
+  flex:1;min-width:0;border:2px solid var(--line);background:#fff;
+  border-radius:var(--radius);padding:10px 12px;text-align:left;
+  display:flex;flex-direction:column;gap:2px;
+}
+.crumb small{font-size:11px;color:var(--mute)}
+.crumb b{
+  font-size:14px;line-height:1.3;overflow:hidden;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+}
+.crumb.on{border-color:var(--accent);background:#eef3ff}
+.swap{
+  flex:0 0 44px;border:1px solid var(--line);background:#fff;
+  border-radius:var(--radius);font-size:18px;color:var(--mute);
+}
+
+.pick input[type=search]{
+  width:100%;padding:12px 14px;border:1px solid var(--line);
+  border-radius:var(--radius);font-size:16px;background:#fff;margin-bottom:12px;
+}
+.grp{margin-bottom:16px}
+.grp h4{font-size:13px;color:var(--mute);margin-bottom:8px}
+.grp h4 span{background:#e6eaee;border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px}
+.more{
+  margin-top:8px;width:100%;border:1px dashed var(--line);background:#fff;
+  border-radius:10px;padding:8px;font-size:13px;color:var(--mute);
+}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.card{
+  display:flex;align-items:center;gap:10px;position:relative;
+  border:1px solid var(--line);background:#fff;border-radius:var(--radius);
+  padding:12px;text-align:left;min-height:60px;
+}
+.card:active{background:#eef3ff}
+.card .ic{font-size:22px;flex:0 0 auto}
+.card .tx{min-width:0;display:flex;flex-direction:column}
+.card b{
+  font-size:14px;line-height:1.3;overflow:hidden;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;
+}
+.card u{text-decoration:none;background:var(--ink);color:#fff;border-radius:5px;padding:0 5px;font-size:11px}
+.card small{font-size:11px;color:var(--mute)}
+.card em{
+  position:absolute;top:6px;right:6px;font-style:normal;font-size:10px;
+  color:#8a6d1f;background:#fdf3d3;border-radius:5px;padding:1px 5px;
+}
+.hint{font-size:12px;color:var(--mute);margin:6px 0}
+
+.card-out{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card-out.bad{border-color:#f3c4bc;background:#fff6f4}
+.card-out h3{font-size:16px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.chip{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:66px;padding:8px 10px;border-radius:12px;background:#f1f3f6;
+  font-size:17px;font-weight:700;line-height:1.15;
+}
+.chip small{font-size:10px;font-weight:400;color:var(--mute)}
+.chip.big{background:var(--accent);color:#fff}
+.chip.big small{color:#c9d8ff}
+.chip.ev{background:#e3f5ec;color:var(--ev)}
+.chip.ev small{color:#4d9a79}
+
+.steps{list-style:none;margin:0 0 14px;padding:0;border-top:1px solid var(--line)}
+.steps li{display:flex;gap:12px;align-items:flex-start;padding:11px 2px;border-bottom:1px solid var(--line)}
+.steps i{font-style:normal;font-size:20px;flex:0 0 26px;text-align:center}
+.steps span{display:flex;flex-direction:column}
+.steps b{font-size:14px;font-weight:600}
+.steps small{font-size:11px;color:var(--mute)}
+.steps .s-ev{background:#f2fbf7}
+.steps .s-start b,.steps .s-goal b{color:var(--accent)}
+
+.warn{background:#fdf7e3;border:1px solid #f0e0a8;border-radius:10px;padding:10px 12px;margin-bottom:12px}
+.warn b{font-size:12px}
+.warn p{margin:4px 0 0;font-size:11.5px;color:#6a5a24;line-height:1.5}
+.cmp{font-size:13px;color:var(--mute)}
+
+/* ---- 案内モード（1手順ずつ、タップで進める） ---- */
+.nav{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 6px}
+.navbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.navbar b{font-size:12px;color:var(--mute);flex:0 0 auto}
+.prog{flex:1;height:6px;background:#e6eaee;border-radius:3px;overflow:hidden}
+.prog span{display:block;height:100%;background:var(--accent);transition:width .25s}
+.navmain{display:flex;align-items:center;gap:14px;padding:2px 0 10px}
+.navicon{font-size:44px;line-height:1;flex:0 0 auto}
+.navtx{min-width:0}
+.navtx b{display:block;font-size:21px;line-height:1.25;font-weight:700}
+.navtx small{display:block;font-size:13px;color:var(--mute);margin-top:4px}
+.navnext{
+  background:#f1f3f6;border-radius:10px;padding:9px 12px;
+  font-size:13px;color:var(--mute);margin-bottom:10px;
+}
+.gps{font-size:12px;border-radius:10px;padding:9px 12px;margin-bottom:10px}
+.gps.on{background:#e8f0ff;color:#1e40af}
+.gps.off{background:#f3f4f6;color:var(--mute)}
+/* 案内の操作ボタンはスクロール領域の外に固定する。
+   手順によってカードの高さが変わるので、カード内に置くと位置が上下して押しにくい。 */
+.navctl{
+  flex:0 0 auto;display:grid;grid-template-columns:1fr 1.6fr;gap:10px;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:var(--card);border-top:1px solid var(--line);
+  box-shadow:0 -2px 10px rgba(0,0,0,.06);
+}
+.navctl.one{grid-template-columns:1fr}
+/* ボタンが無いときは、次にやることを書く場所として使う */
+.navctl.msg{grid-template-columns:1fr;padding-top:14px;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+.navctl.msg p{margin:0;text-align:center;font-size:13.5px;color:var(--mute)}
+.navctl button{padding:15px;font-size:17px;font-weight:700;border-radius:12px}
+.navctl button:disabled{opacity:.35}
+.wide{width:100%;padding:14px;font-size:16px;font-weight:700;margin-bottom:14px}
+.small{padding:7px 11px;font-size:12px}
+
+.ghost{
+  border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:9px 14px;font-size:13px;color:var(--ink);
+}
+.ghost.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.primary{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:9px 16px}
+
+footer{max-width:900px;margin:0 auto;padding:16px 14px 32px;font-size:11.5px;color:var(--mute)}
+footer>div{margin-bottom:10px}
+#legend b{display:block;margin-bottom:5px;color:var(--ink);font-size:12px}
+.lg{display:inline-flex;align-items:center;gap:5px;margin:0 12px 4px 0}
+.lg i{width:16px;height:4px;border-radius:2px;display:inline-block}
+#source a{color:var(--accent)}
+
+
+
+/* Leaflet のピン */
+.poi-pin,.ev-pin,.end-pin{
+  display:flex;align-items:center;justify-content:center;
+  background:#fff;border:2px solid var(--line);border-radius:50%;
+  box-shadow:0 1px 4px rgba(0,0,0,.25);font-size:14px;
+}
+.poi-pin.poi-from{border-color:var(--accent);background:#eef3ff}
+.poi-pin.poi-to{border-color:var(--bad);background:#fff1ee}
+.ev-pin{border-color:var(--ev);background:#e3f5ec}
+.end-pin{border-color:var(--accent);font-size:16px}
+.leaflet-container{font:inherit}
+
+/* エレベーターはその場で乗り降りするだけなので、線を流しても向きが伝わらない。
+   アイコンの周りに波紋を広げて「ここ」を示す。 */
+.ripple-pin{
+  display:flex;align-items:center;justify-content:center;position:relative;
+}
+.ripple-pin b{
+  position:relative;z-index:2;width:34px;height:34px;border-radius:50%;
+  background:#fff;border:2px solid var(--ev);
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+.ripple-pin::before,.ripple-pin::after{
+  content:'';position:absolute;left:0;top:0;width:34px;height:34px;
+  border-radius:50%;border:3px solid var(--ev);
+  animation:ripple 1.9s cubic-bezier(.2,.6,.4,1) infinite;
+}
+.ripple-pin::after{animation-delay:.95s}
+.ripple-pin.escalator b{border-color:#e08a1e}
+.ripple-pin.escalator::before,.ripple-pin.escalator::after{border-color:#e08a1e}
+.ripple-pin.stairs b{border-color:var(--bad)}
+.ripple-pin.stairs::before,.ripple-pin.stairs::after{border-color:var(--bad)}
+@keyframes ripple{
+  0%{transform:scale(.7);opacity:.9}
+  100%{transform:scale(3.4);opacity:0}
+}
+
+/* 進行方向のアニメーション。破線を進行方向へ流す。
+   線を色分けするだけでは「どちらへ進むのか」が伝わらない。 */
+@keyframes route-flow{to{stroke-dashoffset:-48}}
+.route-flow{animation:route-flow 1s linear infinite}
+@media(prefers-reduced-motion:reduce){
+  .route-flow{animation:none}
+  .ripple-pin::before,.ripple-pin::after{animation:none;opacity:0}
+}
+
+/* ---- 地図上のボタン（Google マップに合わせて右下に縦積み） ---- */
+.leaflet-bottom.leaflet-right{display:flex;flex-direction:column;align-items:flex-end}
+.leaflet-bottom.leaflet-right .leaflet-control{margin:0 12px 10px 0;clear:none}
+.leaflet-bottom.leaflet-right .leaflet-control:last-child{margin-bottom:12px}
+.map-btn{
+  width:40px;height:40px;border:0;border-radius:50%;
+  background:#fff;color:#5f6368;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);cursor:pointer;padding:0;
+}
+.map-btn svg{width:20px;height:20px}
+.map-btn:active{background:#f1f3f4}
+.map-btn.locate.on{color:var(--accent)}
+.map-btn.locate.err{color:#9aa0a6}
+.map-btn.locate.err::after{
+  content:'';position:absolute;width:26px;height:2px;background:currentColor;
+  transform:rotate(-45deg);
+}
+.map-btn.locate{position:relative}
+/* ズームは Google と同じく現在地の下、角丸の縦2連 */
+.leaflet-control-zoom,
+.leaflet-touch .leaflet-control-zoom{border:0!important;box-shadow:0 1px 4px rgba(0,0,0,.3);border-radius:20px;overflow:hidden}
+.leaflet-control-zoom a,
+.leaflet-touch .leaflet-control-zoom a{
+  width:40px;height:40px;line-height:40px;color:#5f6368;
+  background:#fff;border-bottom:1px solid #e8eaed;font-size:20px;font-weight:400;
+}
+.leaflet-control-zoom a:last-child{border-bottom:0}
+.leaflet-control-attribution{font-size:10px}

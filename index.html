@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>段差ゼロマップ 川崎駅 / Step-Free Map Kawasaki</title>
+<meta name="description" content="大きな荷物でも階段を使わずに川崎駅を移動するための構内特化マップ。国土交通省 歩行空間ネットワークデータを利用。">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header>
+  <div class="hd">
+    <h1 id="title">段差ゼロマップ 川崎駅</h1>
+    <p id="subtitle">大きな荷物でも階段を使わずに移動する</p>
+  </div>
+  <nav id="langs"></nav>
+</header>
+
+<div id="map"></div>
+
+<div class="floorbar">
+  <span id="layerLabel">表示するフロア</span>
+  <div id="floors"></div>
+</div>
+
+<!-- 地図と階層バーは固定し、下だけを内側でスクロールさせる。
+     ページ全体がスクロールすると、地図が半端に切れて操作しづらくなる。 -->
+<div class="scroll">
+  <main id="panel"></main>
+
+  <footer>
+    <div id="legend"></div>
+    <div id="source"></div>
+  </footer>
+</div>
+
+<!-- 案内中の操作ボタン。手順の長さで位置がずれると押しにくいので、
+     スクロール領域の外に固定して常に同じ場所に置く。 -->
+<div id="navctl" class="navctl" hidden></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
