@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>使い方 — 段差ゼロマップ 川崎駅</title>
+<meta name="description" content="段差ゼロマップ 川崎駅の使い方。通行条件の選び方、案内の見方、データの出典と限界。">
+<style>
+:root{--ink:#1a1f26;--mute:#6b7580;--line:#e2e6ea;--accent:#1d4ed8;--ev:#0a8f5b;--bad:#d0402c;--bg:#f5f6f8}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.75 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Segoe UI",Roboto,sans-serif;
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px 72px}
+header{background:#fff;border-bottom:1px solid var(--line);padding:22px 0 18px;margin-bottom:26px}
+header .wrap{padding-bottom:0}
+h1{font-size:23px;margin:0}
+header p{margin:6px 0 0;color:var(--mute);font-size:14px}
+h2{font-size:18px;margin:34px 0 10px;padding-top:16px;border-top:1px solid var(--line)}
+h3{font-size:15px;margin:20px 0 6px}
+p,li{font-size:14.5px}
+ul,ol{padding-left:1.3em}
+li{margin:4px 0}
+table{border-collapse:collapse;width:100%;margin:12px 0;background:#fff;font-size:13.5px}
+th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:#eef1f4;font-weight:600}
+code{background:#eef1f4;border-radius:4px;padding:1px 5px;font-size:12.5px}
+.note{background:#fdf7e3;border:1px solid #f0e0a8;border-radius:10px;padding:12px 14px;margin:16px 0}
+.note b{font-size:13.5px}
+.note p{margin:6px 0 0;font-size:13px;color:#6a5a24}
+.back{display:inline-block;margin:26px 0 0;color:var(--accent);font-size:14px}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--mute);font-size:12.5px}
+footer a{color:var(--accent)}
+.k{display:inline-block;background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 7px;font-size:13px}
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <h1>使い方 — 段差ゼロマップ 川崎駅</h1>
+  <p>大きな荷物や車椅子で、階段を使わずに川崎駅周辺を移動するためのマップです。</p>
+</div></header>
+
+<div class="wrap">
+
+<h2>1. 何ができるか</h2>
+<p>
+川崎駅の改札から、地上出口・バス乗り場・周辺の施設まで、<b>階段とエスカレーターを一段も通らない経路</b>だけを出します。
+経路検索は駅を「点」として扱うため、駅の中で階段に阻まれることは事前に分かりません。ここは駅の中だけを扱います。
+</p>
+
+<h2>2. 使う手順</h2>
+<ol>
+  <li><b>① いま どこ にいますか？</b> を押して、改札や出入口を選びます。地図のピンからも選べます。</li>
+  <li><b>② どこへ 行きますか？</b> を押して、バス乗り場や施設を選びます。</li>
+  <li>画面の下に出る <span class="k">▶ 案内をはじめる</span> を押します。</li>
+  <li><span class="k">つぎへ ▶</span> で1手順ずつ進めます。</li>
+</ol>
+<p>
+出発地か目的地の片方だけを選び直したときは、もう片方はそのまま残ります。選び直してすぐ案内を始められます。
+</p>
+
+<h2>3. 通行の条件</h2>
+<p>
+条件は「荷物」と「移動手段」の2軸です。<b>それぞれ独立に選べます。</b>
+車椅子で特大スーツケースを持っている人もいるためで、両方を選ぶと条件は掛け合わせ（厳しい方）になります。
+</p>
+<table>
+  <tr><th>軸</th><th>選択肢</th><th>通れる条件</th></tr>
+  <tr><td rowspan="3">荷物</td><td>荷物なし</td><td>階段・エスカレーターを通らないこと</td></tr>
+  <tr><td>スーツケース</td><td>段差 2cm以下・縦断勾配 8%以下・幅員 1.0m以上</td></tr>
+  <tr><td>特大</td><td>上記に加えて 幅員 2.0m以上</td></tr>
+  <tr><td rowspan="3">移動</td><td>徒歩</td><td>追加の条件なし</td></tr>
+  <tr><td>車椅子</td><td>幅員・勾配・段差のランクがすべて「移動等円滑化ガイドライン適合」以上</td></tr>
+  <tr><td>電動車椅子</td><td>同ランクが「電動車椅子で通行可能」まで（勾配8%・段差5cmまで）</td></tr>
+</table>
+<p>
+車椅子を選ぶと、<b>車椅子対応のエレベーターだけ</b>を使います。川崎駅のエレベーターは77基すべてが車椅子・視覚障害者対応です。
+</p>
+
+<h2>4. 案内の見方</h2>
+
+<h3>自分がどこにいるか</h3>
+<p>
+<b>屋内ではGPSが使えません。</b>誤差が数十mある上に階が取れないので、地下にいるのか地上にいるのか判別できません。
+そのため位置を測るのではなく、利用者が <span class="k">つぎへ</span> を押して1手順ずつ進める方式にしています。
+</p>
+<p>
+曲がり角には「NewDaysのところで右へ曲がる」のように<b>近くの店舗や建物の名前</b>を添えます。
+「18m進んで右」では現地で照合できないためです。
+</p>
+<p>
+屋外の区間だけは、地図右下の <span class="k">◎</span> ボタンで現在地を表示できます。青い点と、精度を表す円が出ます。
+屋内の区間では「屋内では現在地を取得できません」と表示します。
+</p>
+
+<h3>地図の見かた</h3>
+<table>
+  <tr><th>表示</th><th>意味</th></tr>
+  <tr><td>青い太線</td><td>目的地までの経路全体</td></tr>
+  <tr><td>オレンジの線＋流れる破線</td><td>いま案内している区間。破線が流れる向きが進行方向</td></tr>
+  <tr><td>広がる波紋</td><td>エレベーター・エスカレーター・階段の位置</td></tr>
+  <tr><td>灰色の細線</td><td>通路（段差なし）</td></tr>
+  <tr><td>緑の線</td><td>エレベーター</td></tr>
+  <tr><td>赤・オレンジの線</td><td>階段・エスカレーター（選んだ条件では通りません）</td></tr>
+</table>
+<p>
+案内中は、地図に表示するフロアが<b>いま歩いているフロアに自動で切り替わります</b>。
+上部のボタンで手動で切り替えることもできます。
+</p>
+
+<h3>経路の要約</h3>
+<p>所要時間・距離・エレベーターの乗車回数・フロア移動の回数に加えて、経路上の<b>最大段差</b>と<b>最小幅員</b>を出します。数字は出典データの区分値です。</p>
+
+<h2>5. 経路が見つからないとき</h2>
+<p>
+条件を満たす経路が無い場合は「この条件では段差ゼロの経路が見つかりません」と表示し、
+<b>階段を含む経路なら何メートル・何分で行けるか</b>を併記します。
+<span class="k">▼ 階段を含む経路を見る</span> を押すと、どこに階段やエスカレーターがあるかを手順ごとに確認できます。
+</p>
+<p>条件をゆるめる（特大→スーツケース など）と見つかることがあります。それでも見つからない場合は駅係員にお尋ねください。</p>
+
+<h2>6. 表示言語</h2>
+<p>画面右上で 日本語 / English / 中文 / 한국어 を切り替えられます。選んだ言語はこの端末に記憶されます。</p>
+<p>
+目印の名前は、英語表記が無い場合は日本語のまま表示します。現地の看板と見比べるのが目的なので、訳すより原文のほうが役に立つためです。
+</p>
+
+<h2>7. データと、その限界</h2>
+
+<div class="note">
+  <b>⚠️ このアプリは段差ゼロを保証しません</b>
+  <p>
+  経路は公開データから自動生成しています。出典データは2019年3月時点のもので、その後の工事や設備の変更は反映されていません。
+  実際に通れるかどうかは現地の表示と駅係員の案内に従ってください。
+  </p>
+</div>
+
+<h3>使っているデータ</h3>
+<table>
+  <tr><th>種別</th><th>出典</th><th>ライセンス</th></tr>
+  <tr>
+    <td>歩行空間ネットワーク<br>（経路・段差・幅員・勾配・エレベーター）</td>
+    <td><a href="https://ckan.hokonavi.go.jp/dataset/nwd_kawasaki_station">国土交通省 歩行空間ネットワークデータ（川崎駅周辺地区）</a><br>2019年3月7日時点</td>
+    <td>公共データ利用規約（第1.0版）</td>
+  </tr>
+  <tr>
+    <td>改札・出入口・バス乗り場の名称、案内の目印</td>
+    <td><a href="https://www.openstreetmap.org/">OpenStreetMap contributors</a></td>
+    <td>ODbL</td>
+  </tr>
+  <tr>
+    <td>背景の地図</td>
+    <td><a href="https://www.openstreetmap.org/">OpenStreetMap contributors</a></td>
+    <td>ODbL</td>
+  </tr>
+</table>
+
+<h3>名称について</h3>
+<p>
+歩行空間ネットワークデータは<b>地点に名前を持ちません</b>。そのため改札・出入口の名前は OpenStreetMap から補っています。
+JR川崎駅の改札4か所（中央南・中央北・北・アトレ）は名称を確定させました。
+</p>
+<p>
+確定していない地点には「未確認」と表示し、代わりに近くの目印を添えます（例：「出入口（有隣堂付近）」）。
+通し番号を振らないのは、現地の表示と照合できないためです。
+</p>
+
+<h3>扱っている範囲</h3>
+<p>
+川崎駅周辺のみです。ノード2,288・リンク2,672・9階層（地下1階〜4階）。
+また、出典データに改札の内側と外側を区別する情報が無いため、<b>改札内での乗り換え案内はできません</b>。
+扱えるのは「改札 ↔ 地上出口・バス乗り場・周辺施設」の区間です。
+</p>
+
+<a class="back" href="./">← マップに戻る</a>
+
+<footer>
+  段差ゼロマップ 川崎駅 ／ 公共交通オープンデータチャレンジ2026 応募作品<br>
+  データ出典: 国土交通省 歩行空間ネットワークデータ（公共データ利用規約 第1.0版）、
+  <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>（ODbL）
+</footer>
+
+</div>
+</body>
+</html>
