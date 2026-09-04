@@ -3,27 +3,20 @@
   --accent:#1d4ed8; --ev:#0a8f5b; --bad:#d0402c; --radius:14px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;height:100%}
-/* 画面を縦に区切り、スクロールするのは下の .scroll だけにする。
-   ページ全体がスクロールすると地図が半端に切れて、現在地の見当がつかなくなる。 */
+html,body{margin:0;padding:0}
+/* ページ全体をふつうにスクロールさせる。
+   地図の下だけを内側でスクロールさせると、スマホでは操作する領域が狭くなりすぎる。
+   代わりに、主な操作ボタン(.navctl)を画面下に固定して常に押せるようにする。 */
 body{
   background:var(--bg); color:var(--ink);
   font:16px/1.55 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP","Segoe UI",Roboto,sans-serif;
-  display:flex; flex-direction:column;
-  height:100vh; height:100dvh;
-  overflow:hidden;
-  overscroll-behavior:none;
-}
-.scroll{
-  flex:1 1 auto; min-height:0; overflow-y:auto;
-  -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
-  padding-bottom:env(safe-area-inset-bottom);
+  /* 下に固定したバーの高さぶんの余白。中身がバーに隠れないようにする */
+  padding-bottom:calc(86px + env(safe-area-inset-bottom));
 }
 h1,h2,h3,h4{margin:0;font-weight:700}
 button{font:inherit;cursor:pointer}
 
 header{
-  flex:0 0 auto;
   display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
   padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);
 }
@@ -36,20 +29,21 @@ header{
 }
 .lang.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 
-/* 地図と階層バーは画面上部に固定する。スクロールするのは下だけ。 */
-#map{flex:0 0 38vh;flex-basis:38dvh;min-height:200px;background:#dfe3e8;transition:flex-basis .2s}
-@media(min-width:900px){#map{flex-basis:46dvh}}
-/* 案内中は手順のほうが大事なので地図を少し縮め、カードが画面に収まるようにする */
-body.nav-on #map{flex-basis:29dvh}
-body.nav-on .floorbar{padding:6px 12px}
-/* 案内中に凡例やデータ出典が出ていると手順が埋もれる */
+/* 地図はページと一緒にスクロールして流れていく。
+   高さは画面の 4 割程度。大きすぎると下の操作が遠くなり、小さすぎると経路が読めない。 */
+#map{height:40vh;min-height:230px;max-height:420px;background:#dfe3e8}
+@media(min-width:900px){#map{height:46vh}}
+/* 案内中は凡例やデータ出典が出ていると手順が埋もれる */
 body.nav-on footer{display:none}
 
+/* 階層バーは地図のすぐ下に貼り付ける。地図をスクロールで追い出しても、
+   どのフロアを見ているかは残しておきたい。 */
 .floorbar{
-  flex:0 0 auto;
+  position:sticky;top:0;z-index:600;
   display:flex;align-items:center;gap:10px;padding:8px 12px;
   background:var(--card);border-bottom:1px solid var(--line);
   overflow-x:auto;white-space:nowrap;
+  box-shadow:0 1px 6px rgba(0,0,0,.05);
 }
 .floorbar>span{font-size:12px;color:var(--mute);flex:0 0 auto}
 #floors{display:flex;gap:6px}
@@ -184,7 +178,8 @@ main{padding:14px;max-width:900px;margin:0 auto}
 /* 案内の操作ボタンはスクロール領域の外に固定する。
    手順によってカードの高さが変わるので、カード内に置くと位置が上下して押しにくい。 */
 .navctl{
-  flex:0 0 auto;display:grid;grid-template-columns:1fr 1.6fr;gap:10px;
+  position:fixed;left:0;right:0;bottom:0;z-index:1000;
+  display:grid;grid-template-columns:1fr 1.6fr;gap:10px;
   padding:10px 14px calc(10px + env(safe-area-inset-bottom));
   background:var(--card);border-top:1px solid var(--line);
   box-shadow:0 -2px 10px rgba(0,0,0,.06);
@@ -256,6 +251,28 @@ footer>div{margin-bottom:10px}
    線を色分けするだけでは「どちらへ進むのか」が伝わらない。 */
 @keyframes route-flow{to{stroke-dashoffset:-48}}
 .route-flow{animation:route-flow 1s linear infinite}
+/* 案内文で名前を出している目印。地図に無いと、どの角のことか分からない。 */
+.lm-pin{
+  display:flex!important;align-items:center;gap:5px;
+  width:max-content!important;height:auto!important;
+  background:transparent;pointer-events:none;
+}
+.lm-pin i{
+  flex:0 0 auto;width:11px;height:11px;border-radius:50%;
+  background:#7c3aed;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+.lm-pin b{
+  font-size:11.5px;font-weight:600;color:#fff;white-space:nowrap;
+  background:#7c3aed;border-radius:6px;padding:2px 7px;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+
+/* 曲がる向きを角に置く。手順の文と同じ記号にして、地図と案内を結びつける。 */
+.turn-pin{
+  display:flex;align-items:center;justify-content:center;
+  background:#fff;border:2px solid #f97316;border-radius:50%;
+  font-size:15px;box-shadow:0 1px 5px rgba(0,0,0,.3);
+}
 @media(prefers-reduced-motion:reduce){
   .route-flow{animation:none}
   .ripple-pin::before,.ripple-pin::after{animation:none;opacity:0}

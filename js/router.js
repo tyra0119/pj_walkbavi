@@ -125,15 +125,53 @@ export class Graph {
     }
   }
 
-  /** ノード n の位置にある目印。無ければ 1 ホップ隣まで探す。 */
-  landmarkAt(n) {
-    if (this.lm.has(n)) return this.lm.get(n);
+  /**
+   * ノード n の位置にある目印。無ければ 2 ホップ隣まで探す。
+   * `used` に入っている名前は飛ばす。同じ店の名前で 2 回曲がれと言われると、
+   * どちらの角のことか現地で区別できないため。
+   */
+  landmarkAt(n, used) {
+    const ok = (m) => m && !(used && used.has(m.name_ja));
+    if (ok(this.lm.get(n))) return this.lm.get(n);
+    // 近い順に見る。遠くの店を指しても現地で照合できない。
+    const cand = [];
     for (const j of this.adj[n]) {
       const L = this.links[j];
       const v = L[0] === n ? L[1] : L[0];
-      if (L[2] <= 25 && this.lm.has(v)) return this.lm.get(v);
+      if (L[2] <= 30) cand.push([L[2], v]);
+    }
+    cand.sort((a, b) => a[0] - b[0]);
+    for (const [d, v] of cand) {
+      if (ok(this.lm.get(v))) return this.lm.get(v);
+      for (const j2 of this.adj[v]) {
+        const L2 = this.links[j2];
+        const w = L2[0] === v ? L2[1] : L2[0];
+        if (w !== n && d + L2[2] <= 40 && ok(this.lm.get(w))) return this.lm.get(w);
+      }
     }
     return null;
+  }
+
+  /*
+   * 出発地・目的地の名前と紛らわしい目印を除くための集合。
+   * OSM では建物と店舗が別々に登録されていて、目的地が「MORE'S」でも
+   * 目印側に「b-MORE'S」が入っていたりする。片方がもう片方を含むなら同じ場所とみなす。
+   */
+  endpointNames(from, to) {
+    const names = [];
+    for (const p of this.pois) {
+      if (p.node !== from && p.node !== to) continue;
+      if (p.name_ja) names.push(p.name_ja);
+      if (p.name_en) names.push(p.name_en);
+    }
+    const norm = (v) => String(v).toLowerCase().replace(/[\s'’`\-‐−・.,()（）「」『』]/g, '');
+    const keys = names.map(norm).filter((v) => v.length >= 2);
+    const out = new Set();
+    for (const m of this.lm.values()) {
+      const n = norm(m.name_ja);
+      if (keys.some((k) => n.includes(k) || k.includes(n))) out.add(m.name_ja);
+    }
+    return out;
   }
 
   cost(L) {
@@ -176,10 +214,10 @@ export class Graph {
     const path = [];
     for (let v = to; v !== from; v = prevNode[v]) path.push(prevLink[v]);
     path.reverse();
-    return this.describe(from, path);
+    return this.describe(from, path, to);
   }
 
-  describe(from, linkIdx) {
+  describe(from, linkIdx, to) {
     let cur = from;
     const segs = [];
     let meters = 0;
@@ -199,7 +237,7 @@ export class Graph {
       segs.push({ link: j, from: cur, to: next, L });
       cur = next;
     }
-    const steps = this.instructions(from, segs);
+    const steps = this.instructions(from, segs, this.endpointNames(from, to));
     // 乗車回数は「まとめたあとの EV 手順の数」で数える。リンク数で数えると
     // 1 基のエレベーターが複数回に見える。
     const elevators = steps.filter((s) => s.type === 'elevator').length;
@@ -217,51 +255,149 @@ export class Graph {
   }
 
   /** 曲がり角とフロア移動をまとめて、手順のリストにする。 */
-  instructions(from, segs) {
+  /*
+   * 手順のリストを作る。
+   *
+   * 曲がりは「直前のリンクとの角度」では判定しない。NWD の経路には、通路を斜めに
+   * 横切ったり柱を避けたりする 6〜9m の寄り道が挟まっていて、リンク単位で見ると
+   * そこが 90 度の曲がりに見えてしまう。歩く人はそれを曲がったとは感じない。
+   *
+   * 代わりに、その地点の前後 SMOOTH_M メートルの進行方向を比べる。
+   * 寄り道はこの長さで均されて消え、本当に向きが変わる場所だけが残る。
+   */
+  instructions(from, segs, exclude) {
+    const nodesSeq = [from, ...segs.map((s) => s.to)];
+    const cum = [0];
+    for (let i = 0; i < segs.length; i++) cum.push(cum[i] + segs[i].L[2]);
+
+    // 累積距離 d の地点の座標（リンクの途中なら按分する）
+    const pointAt = (d) => {
+      let k = 0;
+      while (k < cum.length - 2 && cum[k + 1] < d) k++;
+      const span = cum[k + 1] - cum[k];
+      const f = span > 0 ? Math.min(1, Math.max(0, (d - cum[k]) / span)) : 0;
+      const a = this.nodes[nodesSeq[k]], b = this.nodes[nodesSeq[k + 1]];
+      return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+    };
+
     const out = [];
-    let run = null;
-    const flush = () => { if (run) { out.push(run); run = null; } };
-    for (let i = 0; i < segs.length; i++) {
-      const s = segs[i];
-      const rt = s.L[3];
-      // 縦移動（EV / ES / 階段）は水平移動と分けて 1 手順にする。
-      // 階段とエスカレーターは段差ゼロ経路には出ないが、
-      // 「階段を含む経路」を比較表示するときに使う。
-      const VERT = { [RT.ELEVATOR]: 'elevator', [RT.ESCALATOR]: 'escalator', [RT.STAIRS]: 'stairs' };
+    const VERT = { [RT.ELEVATOR]: 'elevator', [RT.ESCALATOR]: 'escalator', [RT.STAIRS]: 'stairs' };
+
+    let i = 0;
+    while (i < segs.length) {
+      const rt = segs[i].L[3];
+
       if (VERT[rt]) {
-        flush();
+        // 1基のエレベーターが複数リンクに分かれているので、連続する同種はまとめる
+        let j = i;
+        let meters = 0;
+        let accessible = true;
+        while (j < segs.length && segs[j].L[3] === rt) {
+          meters += segs[j].L[2];
+          if (rt === RT.ELEVATOR) accessible = accessible && segs[j].L[7] >= 3;
+          j++;
+        }
         out.push({
           type: VERT[rt],
-          meters: rt === RT.ELEVATOR ? 0 : s.L[2],
-          fromFloor: this.nodes[s.from][2],
-          toFloor: this.nodes[s.to][2],
-          accessible: rt === RT.ELEVATOR && s.L[7] >= 3,
-          at: this.nodes[s.to],
-          startNode: s.from,
-          endNode: s.to,
-          landmark: this.landmarkAt(s.from),
+          meters: rt === RT.ELEVATOR ? 0 : meters,
+          fromFloor: this.nodes[nodesSeq[i]][2],
+          toFloor: this.nodes[nodesSeq[j]][2],
+          accessible: rt === RT.ELEVATOR && accessible,
+          at: this.nodes[nodesSeq[j]],
+          startNode: nodesSeq[i],
+          endNode: nodesSeq[j],
         });
+        i = j;
         continue;
       }
-      const turn = i > 0 ? this.turnAt(segs[i - 1], s) : null;
-      if (run && turn && turn !== 'straight') flush();
-      if (!run) {
-        run = {
-          type: rt === RT.CROSSING ? 'crossing' : 'walk',
-          meters: 0, turn,
-          at: this.nodes[s.from],
-          floor: this.nodes[s.from][2],
-          outdoor: this.nodes[s.from][3] === 1, // 施設外なら GPS が期待できる
-          startNode: s.from,
-          landmark: this.landmarkAt(s.from),
-        };
+
+      // 縦移動に挟まれた、ひとつながりの水平区間
+      let j = i;
+      while (j < segs.length && !VERT[segs[j].L[3]]) j++;
+
+      // 区間の中で「曲がった」と感じる地点を拾う
+      const turns = [];
+      for (let k = i + 1; k < j; k++) {
+        const back = Math.max(cum[i], cum[k] - SMOOTH_M);
+        const fwd = Math.min(cum[j], cum[k] + SMOOTH_M);
+        // 前後どちらかが短すぎると向きが定まらない
+        if (cum[k] - back < 4 || fwd - cum[k] < 4) continue;
+        const here = this.nodes[nodesSeq[k]];
+        const d = angleDiff(bearing(pointAt(back), here), bearing(here, pointAt(fwd)));
+        const lab = turnLabel(d);
+        if (lab !== 'straight') turns.push({ k, lab, mag: Math.abs(d) });
       }
-      run.meters += s.L[2];
-      run.at2 = this.nodes[s.to];
-      run.endNode = s.to;
+
+      // 近すぎる曲がりは、いちばん大きいものだけ残す。
+      // 数メートルおきに「右、左、右」と言われても従えない。
+      const kept = [];
+      for (const tn of turns) {
+        const last = kept[kept.length - 1];
+        if (last && cum[tn.k] - cum[last.k] < MIN_STEP_M) {
+          if (tn.mag > last.mag) kept[kept.length - 1] = tn;
+          continue;
+        }
+        kept.push(tn);
+      }
+
+      const pushWalk = (a, b, endTurn) => {
+        if (b <= a) return;
+        out.push({
+          type: 'walk',
+          meters: cum[b] - cum[a],
+          at: this.nodes[nodesSeq[a]],
+          at2: this.nodes[nodesSeq[b]],
+          floor: this.nodes[nodesSeq[a]][2],
+          outdoor: this.nodes[nodesSeq[a]][3] === 1, // 施設外なら GPS が期待できる
+          startNode: nodesSeq[a],
+          endNode: nodesSeq[b],
+          endTurn: endTurn || null,
+        });
+      };
+      let a = i;
+      for (const tn of kept) { pushWalk(a, tn.k, tn.lab); a = tn.k; }
+      pushWalk(a, j, null);
+      i = j;
     }
-    flush();
-    return mergeShort(out).map((o) => ({ ...o, meters: Math.round(o.meters) }));
+
+    const merged = out.map((o) => ({ ...o, meters: Math.round(o.meters) }));
+
+    /*
+     * 各手順を「歩く区間 ＋ その終わりでする動作」として仕上げる。
+     *
+     * 「曲がってから歩く」形にすると、歩いている間じゅう画面が
+     * すでに済んだ動作を指し続け、次に何をするのかが分からない。
+     * カーナビが「500m先を右折」と言うのと同じ理由で、これから来る動作を先に見せる。
+     */
+    for (let k = 0; k < merged.length; k++) {
+      const s = merged[k];
+      if (isVerticalStep(s) || s.type === 'crossing') continue;
+      const next = merged[k + 1];
+      if (s.endTurn) s.endAction = s.endTurn;
+      else if (!next) s.endAction = 'goal';
+      else if (isVerticalStep(next)) s.endAction = next.type;
+      else s.endAction = 'straight';
+      s.endLandmarkNode = s.endNode;
+    }
+
+    /*
+     * 目印は曲がる手順にだけ付ける。「エレベーターの前へ」「到着」に添えても
+     * 文には出ないのに地図にだけ名前が出て、何を指しているのか分からなくなる。
+     *
+     * 出発地・目的地と同じ名前の目印も使わない。目的地が MORE'S のときに
+     * 「MORE'S のところで右へ曲がる」と言われると、着いたのかどうか分からない。
+     */
+    const TURNS = new Set(['left', 'right', 'back']);
+    const used = new Set(exclude || []);
+    for (const s of merged) {
+      s.landmark = null;
+      if (isVerticalStep(s) || !TURNS.has(s.endAction) || s.endLandmarkNode == null) continue;
+      const lm = this.landmarkAt(s.endLandmarkNode, used);
+      if (!lm) continue;
+      s.landmark = lm;
+      used.add(lm.name_ja);
+    }
+    return merged;
   }
 
   turnAt(prev, cur) {
@@ -308,44 +444,25 @@ export class Graph {
  */
 const MIN_STEP_M = 12;
 
-function mergeShort(runs) {
-  const out = [];
-  for (const r of runs) {
-    const prev = out[out.length - 1];
-    // 1基のエレベーター（や1本の階段）が複数リンクに分割されていることがある。
-    // 連続する同種の縦移動は 1 回にまとめる（そうしないと「3回乗り換え」に見える）。
-    const VERTICAL = r.type === 'elevator' || r.type === 'escalator' || r.type === 'stairs';
-    if (VERTICAL && prev && prev.type === r.type) {
-      prev.toFloor = r.toFloor;
-      prev.accessible = prev.accessible && r.accessible;
-      prev.meters += r.meters;
-      prev.at = r.at;
-      prev.endNode = r.endNode;
-      continue;
-    }
-    if (VERTICAL || r.type === 'crossing' || !prev || prev.type !== 'walk' || r.type !== 'walk') {
-      out.push({ ...r });
-      continue;
-    }
-    // 短すぎる区間、または曲がらずに続く区間は直前にくっつける
-    if (r.meters < MIN_STEP_M || !r.turn || r.turn === 'straight') {
-      prev.meters += r.meters;
-      prev.at2 = r.at2;
-      prev.endNode = r.endNode;
-      continue;
-    }
-    out.push({ ...r });
-  }
-  // 先頭が極端に短い場合は次に寄せる
-  if (out.length > 1 && out[0].type === 'walk' && out[0].meters < MIN_STEP_M && out[1].type === 'walk') {
-    out[1].meters += out[0].meters;
-    out[1].turn = out[0].turn;
-    out[1].startNode = out[0].startNode;
-    out[1].at = out[0].at;
-    out[1].landmark = out[0].landmark || out[1].landmark;
-    out.shift();
-  }
-  return out;
+/*
+ * 曲がりを判定するときに前後を見る距離。
+ * 短いと寄り道を曲がりと誤判定し、長いと本物の曲がりを見落とす。
+ * 川崎の寄り道は 6〜9m なので、その倍を超える 20m にしてある。
+ */
+const SMOOTH_M = 20;
+
+export function isVerticalStep(s) {
+  return !!s && (s.type === 'elevator' || s.type === 'escalator' || s.type === 'stairs');
+}
+
+function angleDiff(a, b) {
+  return ((b - a + 540) % 360) - 180;
+}
+
+function turnLabel(d) {
+  if (Math.abs(d) < 35) return 'straight';
+  if (Math.abs(d) > 150) return 'back';
+  return d > 0 ? 'right' : 'left';
 }
 
 function bearing(a, b) {

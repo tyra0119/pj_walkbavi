@@ -240,8 +240,7 @@ function drawRoute(r) {
         if (isVertical(s)) {
           // エレベーターは移動距離がほぼ無いので、線を流しても「少しずれる」だけで
           // 何が起きるか伝わらない。その場で波紋を広げて位置を示す。
-          const p = seg[seg.length - 1];
-          L.marker(p, {
+          L.marker(seg[seg.length - 1], {
             icon: L.divIcon({
               className: 'ripple-pin ' + s.type,
               html: `<b>${stepIcon(s)}</b>`,
@@ -259,6 +258,49 @@ function drawRoute(r) {
             color: '#fff', weight: 5, opacity: 1, className: 'route-flow',
             dashArray: '9 15', lineCap: 'butt',
           }).addTo(layers.route);
+
+          // 区間の「終わり」でする動作を、その地点に置く。
+          // 手順は「歩いて、その先で曲がる」形なので、記号も終点側にある。
+          const TURN_GLYPH = { left: '⬅️', right: '➡️', back: '↩️' };
+          const glyph = TURN_GLYPH[s.endAction] || (s.endAction === 'goal' ? '🏁' : '');
+          if (glyph) {
+            L.marker(seg[seg.length - 1], {
+              icon: L.divIcon({
+                className: 'turn-pin', html: `<span>${glyph}</span>`,
+                iconSize: [30, 30], iconAnchor: [15, 15],
+              }),
+              interactive: false,
+              zIndexOffset: 700,
+            }).addTo(layers.route);
+          }
+
+          // 曲がったあとどちらへ向かうのかを、先の 18m だけ薄く見せる。
+          // 角に矢印を置くだけでは、その先が右か左か地図から読み取れない。
+          if (TURN_GLYPH[s.endAction] && b < r.nodes.length - 1) {
+            const lead = leadOutPath(r, b, 18);
+            if (lead.length > 1) {
+              L.polyline(lead, { color: '#f97316', weight: 5, opacity: 0.4 }).addTo(layers.route);
+              curSeg = seg.concat(lead.slice(1));
+            }
+          }
+        }
+        // 案内文で名前を出している目印を、地図にも置く。
+        // 「◯◯のところで右へ曲がる」と言われても、その◯◯が地図に無いと
+        // どの角のことか分からない。名前を出したものは必ず見えるようにする。
+        // 縦移動の手順は文中で目印に触れないので、地図にも出さない。
+        if (!isVertical(s) && s.landmark && s.landmark.node != null) {
+          const ln = G.nodes[s.landmark.node];
+          L.marker([ln[0], ln[1]], {
+            icon: L.divIcon({
+              className: 'lm-pin',
+              html: `<i></i><b>${escapeHtml(lmName(s.landmark))}</b>`,
+              iconSize: [null, null], iconAnchor: [7, 7],
+            }),
+            interactive: false,
+            zIndexOffset: 650,
+          }).addTo(layers.route);
+          // 目印が画面に入るように、地図の範囲にも足す
+          if (curSeg) curSeg = curSeg.concat([[ln[0], ln[1]]]);
         }
       }
     }
@@ -266,6 +308,32 @@ function drawRoute(r) {
   }
   curSeg = null;
   map.fitBounds(L.polyline(pts).getBounds(), { padding: [40, 40] });
+}
+
+/*
+ * 曲がり角から先の `budget` メートルぶんの線を返す。
+ * 角に矢印を置くだけでは、曲がったあとどちらへ向かうのかが地図から読み取れない。
+ * リンク単位で進むと 1 本が長いときに行き過ぎるので、途中で切って点を作る。
+ */
+function leadOutPath(r, cornerIdx, budget) {
+  const pts = [[G.nodes[r.nodes[cornerIdx]][0], G.nodes[r.nodes[cornerIdx]][1]]];
+  let remain = budget;
+  let k = cornerIdx;
+  while (k < r.nodes.length - 1 && remain > 0) {
+    const cur = G.nodes[r.nodes[k]];
+    const next = G.nodes[r.nodes[k + 1]];
+    const d = haversine(cur[0], cur[1], next[0], next[1]);
+    if (d <= remain) {
+      pts.push([next[0], next[1]]);
+      remain -= d;
+      k++;
+    } else {
+      const f = remain / d;
+      pts.push([cur[0] + (next[0] - cur[0]) * f, cur[1] + (next[1] - cur[1]) * f]);
+      remain = 0;
+    }
+  }
+  return pts;
 }
 
 function fitWholeRoute(r) {
@@ -304,17 +372,7 @@ function renderAll() {
   t = makeT(state.lang);
   document.documentElement.lang = state.lang;
   document.title = t('title');
-  // 案内中は地図を縮める。地図の高さを変えたら Leaflet に伝える必要がある。
-  const wasNav = document.body.classList.contains('nav-on');
   document.body.classList.toggle('nav-on', state.navMode);
-  if (map && wasNav !== state.navMode) {
-    // 高さを変えた直後は Leaflet が古いサイズのままなので、伝えてから合わせ直す
-    setTimeout(() => {
-      map.invalidateSize();
-      if (state.navMode && curRoute) focusStep(curRoute);
-      else if (curRoute) fitWholeRoute(curRoute);
-    }, 240);
-  }
   drawNetwork();
   drawPois();
   const { r, fallback } = currentRoute();
@@ -496,8 +554,13 @@ function resetScrollIfViewChanged() {
   const view = `${state.phase}|${state.navMode}|${state.from ? state.from.id : ''}|${state.to ? state.to.id : ''}`;
   if (view === lastView) return;
   lastView = view;
-  const sc = document.querySelector('.scroll');
-  if (sc) sc.scrollTop = 0;
+  window.scrollTo({ top: 0 });
+}
+
+/* 案内中は手順が変わるたびに先頭へ戻す。
+   ページ全体がスクロールするので、下の方を見ていると地図と手順が同時に見えなくなる。 */
+function scrollToMap() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function picker() {
@@ -600,6 +663,10 @@ function routeCard(r, fallback) {
     </div>`;
 }
 
+function escapeHtml(v) {
+  return String(v).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
 function lmName(lm) {
   if (!lm) return '';
   return state.lang === 'ja' ? lm.name_ja : (lm.name_en || lm.name_ja);
@@ -619,6 +686,30 @@ function illust(s) {
     s.toFloor > s.fromFloor)}</div>`;
 }
 
+/*
+ * 手順の文。「歩いて、その先で◯◯する」という形にする。
+ *
+ * 「曲がってから歩く」形だと、歩いている間ずっと画面がすでに済んだ動作を指し、
+ * 次に何をするのかが分からない。カーナビが「500m先を右折」と言うのと同じ理由で、
+ * これから来る動作を先に見せる。
+ */
+const END_ACT_KEY = {
+  left: 'inst_left', right: 'inst_right', back: 'inst_back',
+  elevator: 'inst_to_elevator', escalator: 'inst_to_escalator', stairs: 'inst_to_stairs',
+  crossing: 'inst_crossing',
+};
+
+/** 区間の終わりでする動作の文（「NewDays のところで右へ曲がる」など） */
+function endActionText(s) {
+  const key = END_ACT_KEY[s.endAction];
+  if (!key) return '';
+  const base = t(key);
+  // 曲がるときだけ目印を添える。距離だけでは現地で照合できない。
+  const lm = lmName(s.landmark);
+  const isTurn = s.endAction === 'left' || s.endAction === 'right' || s.endAction === 'back';
+  return lm && isTurn ? t('inst_at_landmark', { lm, act: base }) : base;
+}
+
 function stepText(s) {
   if (isVertical(s)) {
     return t(VERT_KEY[s.type], {
@@ -626,12 +717,13 @@ function stepText(s) {
     });
   }
   if (s.type === 'crossing') return t('inst_crossing');
-  const key = s.turn && s.turn !== 'straight' ? s.turn : 'straight';
-  const base = t('inst_' + key);
-  // 「○○の前で右へ曲がる」。距離だけでは現地で照合できない。
-  const lm = lmName(s.landmark);
-  if (lm && key !== 'straight') return t('inst_at_landmark', { lm, act: base });
-  return base;
+  if (s.endAction === 'goal') return t('inst_walk_goal', { m: s.meters });
+  const act = endActionText(s);
+  if (!act) return t('inst_straight');
+  // ほとんど歩かない区間で「1m 進み、右へ曲がる」と出すと回りくどい。
+  // その場で曲がるだけなので、距離は省く。
+  if (s.meters < 5) return act;
+  return t('inst_walk_then', { m: s.meters, act });
 }
 
 function stepIcon(s) {
@@ -639,7 +731,11 @@ function stepIcon(s) {
   if (s.type === 'escalator') return '🛝';
   if (s.type === 'stairs') return '🪜';
   if (s.type === 'crossing') return '🚦';
-  return { straight: '⬆️', left: '⬅️', right: '➡️', back: '↩️' }[s.turn] || '⬆️';
+  // 記号は「区間の終わりでする動作」を指す
+  return {
+    left: '⬅️', right: '➡️', back: '↩️',
+    elevator: '🛗', escalator: '🛝', stairs: '🪜', crossing: '🚦', goal: '🏁',
+  }[s.endAction] || '⬆️';
 }
 
 function stepRow(s) {
@@ -648,9 +744,8 @@ function stepRow(s) {
       ${s.accessible ? `<small>${t('ev_accessible')}</small>` : ''}
       ${illust(s)}</span></li>`;
   }
-  const lm = lmName(s.landmark);
   return `<li><i>${stepIcon(s)}</i><span><b>${stepText(s)}</b>
-    <small>${s.meters}${t('meters')} · ${floorName(state.lang, s.floor)}${lm && s.turn === 'straight' ? ' · ' + t('near_of', { n: lm }) : ''}</small></span></li>`;
+    <small>${floorName(state.lang, s.floor)}</small></span></li>`;
 }
 
 /* ------------------------------------------------------------- nav mode */
@@ -674,7 +769,7 @@ function navPanel(r) {
   if (isStart) sub = poiLabel(state.from);
   else if (isGoal) sub = poiLabel(state.to);
   else if (isVertical(s)) sub = s.accessible ? t('ev_accessible') : '';
-  else sub = `${s.meters}${t('meters')} · ${floorName(state.lang, s.floor)}`;
+  else sub = floorName(state.lang, s.floor);
 
   const canGps = s ? s.outdoor : true;
   const gps = state.gps;
@@ -726,6 +821,7 @@ function navAction(act, r) {
   syncFloor(r);
   renderAll();
   focusStep(r);
+  if (act === 'next' || act === 'prev') scrollToMap();
 }
 
 /* 案内中は地図のフロア表示を、いま歩いているフロアに合わせる。
@@ -750,7 +846,12 @@ function focusStep(r) {
   if (curSeg && curSeg.length > 1) {
     const b = L.latLngBounds(curSeg);
     if (b.isValid() && !b.getNorthEast().equals(b.getSouthWest())) {
-      map.fitBounds(b, { padding: [40, 40], maxZoom: 19, animate: true });
+      // 右下には現在地とズームのボタンが乗っている。均等な余白だと曲がり角が
+      // ボタンの下に隠れることがあるので、右下だけ広く取る。
+      map.fitBounds(b, {
+        paddingTopLeft: [40, 30], paddingBottomRight: [72, 56],
+        maxZoom: 19, animate: true,
+      });
       return;
     }
   }
