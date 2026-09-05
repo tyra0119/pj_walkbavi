@@ -1,6 +1,6 @@
-import { Graph, RT, PROFILES, makeProfile } from './router.js';
-import { LANGS, makeT, floorName } from './i18n.js';
-import { verticalSVG } from './icons.js';
+import { Graph, RT, PROFILES, makeProfile } from './router.js?v=337d1be7';
+import { LANGS, makeT, floorName } from './i18n.js?v=337d1be7';
+import { verticalSVG } from './icons.js?v=337d1be7';
 
 /* 荷物と移動手段は独立した 2 軸。車椅子で特大スーツケースを持つ人もいるので、
    5 択の排他選択では組み合わせを表現できない。条件は AND で掛け合わせる。 */
@@ -53,7 +53,7 @@ const layers = { net: null, route: null, poi: null, pick: null, me: null, acc: n
 /* ------------------------------------------------------------------ init */
 
 async function boot() {
-  const res = await fetch('data/kawasaki.json');
+  const res = await fetch('data/kawasaki.json?v=337d1be7');
   G = new Graph(await res.json());
   initMap();
   renderAll();
