@@ -9,7 +9,11 @@ export const LANGS = [
 
 export const T = {
   ja: {
-    title: '段差ゼロマップ 川崎駅',
+    title: '段差ゼロマップ',
+    area_pick: '地図',
+    area_kawasaki: '川崎駅',
+    area_ariake: '有明・国際展示場',
+    area_switch_note: '地図を切り替えると、選んだ出発地と目的地は消えます',
     subtitle: '大きな荷物でも階段を使わずに移動する',
     step_from: '① いま どこ にいますか？',
     step_to: '② どこへ 行きますか？',
@@ -101,7 +105,11 @@ export const T = {
     unverified_warn: '名称が未確認の地点です',
   },
   en: {
-    title: 'Step-Free Map — Kawasaki Station',
+    title: 'Step-Free Map',
+    area_pick: 'Map',
+    area_kawasaki: 'Kawasaki Station',
+    area_ariake: 'Ariake / Tokyo Big Sight',
+    area_switch_note: 'Switching maps clears the places you picked',
     subtitle: 'Get around with big luggage, without stairs',
     step_from: '① Where are you now?',
     step_to: '② Where do you want to go?',
@@ -193,7 +201,11 @@ export const T = {
     unverified_warn: 'The name of this point is unverified',
   },
   zh: {
-    title: '无台阶地图 — 川崎站',
+    title: '无台阶地图',
+    area_pick: '地图',
+    area_kawasaki: '川崎站',
+    area_ariake: '有明・国际展示场',
+    area_switch_note: '切换地图后，已选择的出发地和目的地会被清除',
     subtitle: '带大件行李也不必走楼梯',
     step_from: '① 您现在在哪里？',
     step_to: '② 您要去哪里？',
@@ -285,7 +297,11 @@ export const T = {
     unverified_warn: '该地点名称尚未确认',
   },
   ko: {
-    title: '무단차 지도 — 가와사키역',
+    title: '무단차 지도',
+    area_pick: '지도',
+    area_kawasaki: '가와사키역',
+    area_ariake: '아리아케・고쿠사이텐지조',
+    area_switch_note: '지도를 바꾸면 선택한 출발지와 목적지가 지워집니다',
     subtitle: '큰 짐이 있어도 계단 없이 이동',
     step_from: '① 지금 어디에 계신가요?',
     step_to: '② 어디로 가시나요?',

@@ -22,6 +22,13 @@ header{
 }
 .hd h1{font-size:19px;letter-spacing:-.01em}
 .hd p{margin:2px 0 0;font-size:13px;color:var(--mute)}
+.hd-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* 地図の切り替えは種類が少ないので select で足りる。ボタンを並べると
+   言語の 4 ボタンと横に並んで、どちらが何の切り替えか分からなくなる。 */
+.areas{
+  font:inherit;font-size:13px;border:1px solid var(--line);border-radius:999px;
+  background:#fff;color:var(--ink);padding:6px 10px;max-width:12em;
+}
 #langs{display:flex;gap:4px;flex-wrap:wrap}
 .lang{
   border:1px solid var(--line);background:#fff;color:var(--mute);

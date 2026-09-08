@@ -1,6 +1,6 @@
-import { Graph, RT, PROFILES, makeProfile } from './router.js?v=337d1be7';
-import { LANGS, makeT, floorName } from './i18n.js?v=337d1be7';
-import { verticalSVG } from './icons.js?v=337d1be7';
+import { Graph, RT, PROFILES, makeProfile } from './router.js?v=b3e40d6a';
+import { LANGS, makeT, floorName } from './i18n.js?v=b3e40d6a';
+import { verticalSVG } from './icons.js?v=b3e40d6a';
 
 /* 荷物と移動手段は独立した 2 軸。車椅子で特大スーツケースを持つ人もいるので、
    5 択の排他選択では組み合わせを表現できない。条件は AND で掛け合わせる。 */
@@ -14,6 +14,16 @@ const AXIS_ICON = {
 };
 
 const STORE_LANG = 'walkbavi.lang';
+const STORE_AREA = 'walkbavi.area';
+
+/* 扱える地図。作れる場所は推測ではなく実測で決めている（全28地区を
+   「構内から段差ゼロで出入口まで出られるか」で測った）。
+   tools/areas.py と揃えること。→ navi/NWD 横展開できる地区の実測 */
+const AREAS = ['kawasaki', 'ariake'];
+
+/* 公開時に tools/publish.py が ?v=版 を入れる。ここが空でも動くが、
+   訪問者のブラウザが古い地図を使い続けることがある。 */
+const DATA_V = '?v=b3e40d6a';
 
 const KIND_ICON = { gate: '🎫', entrance: '🚪', bus: '🚌', dest: '🏬', elevator: '🛗' };
 const KIND_ORDER = ['gate', 'entrance', 'bus', 'dest', 'elevator'];
@@ -26,7 +36,11 @@ const LINK_STYLE = {
 };
 const FLAT_STYLE = { color: '#9aa4ae', weight: 2.5, key: 'lg_flat' };
 
+/* 地図は URL で指せるようにする。案内を人に送るときにリンクだけで伝わる。 */
+const urlArea = new URLSearchParams(location.search).get('area');
 const state = {
+  area: AREAS.includes(urlArea) ? urlArea
+    : (AREAS.includes(localStorage.getItem(STORE_AREA)) ? localStorage.getItem(STORE_AREA) : AREAS[0]),
   lang: localStorage.getItem(STORE_LANG) || (navigator.language || 'ja').slice(0, 2),
   luggage: 'suitcase',
   mobility: 'walk',
@@ -53,9 +67,39 @@ const layers = { net: null, route: null, poi: null, pick: null, me: null, acc: n
 /* ------------------------------------------------------------------ init */
 
 async function boot() {
-  const res = await fetch('data/kawasaki.json?v=337d1be7');
-  G = new Graph(await res.json());
+  await loadArea(state.area);
   initMap();
+  fitArea();
+  renderAll();
+}
+
+async function loadArea(id) {
+  const res = await fetch(`data/${id}.json${DATA_V}`);
+  if (!res.ok) throw new Error(`地図を読めません: ${id}`);
+  G = new Graph(await res.json());
+  state.area = id;
+}
+
+/* 地図ごとに場所が違うので、初期表示は読み込んだ網に合わせる。
+   座標を書いておくと、地区を足したときに直し忘れて何も映らない画面になる。 */
+function fitArea() {
+  const lat = G.nodes.map((n) => n[0]);
+  const lon = G.nodes.map((n) => n[1]);
+  map.fitBounds([[Math.min(...lat), Math.min(...lon)], [Math.max(...lat), Math.max(...lon)]],
+    { padding: [20, 20] });
+}
+
+async function switchArea(id) {
+  if (id === state.area) return;
+  stopGps();
+  await loadArea(id);
+  localStorage.setItem(STORE_AREA, id);
+  // 出発地・目的地は地図ごとの POI 番号なので、持ち越すと別の場所を指す。
+  Object.assign(state, { from: null, to: null, phase: 'from', floor: 'all', navMode: false, navIdx: 0 });
+  const u = new URL(location.href);
+  u.searchParams.set('area', id);
+  history.replaceState(null, '', u);
+  fitArea();
   renderAll();
 }
 
@@ -69,7 +113,7 @@ const LOCATE_ICON = `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden
   </g></svg>`;
 
 function initMap() {
-  map = L.map('map', { zoomControl: false, tap: true }).setView([35.5308, 139.6970], 17);
+  map = L.map('map', { zoomControl: false, tap: true });
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     // OSM の標準タイルは z19 まで。20 を要求すると 400 が返るので、
     // それ以上は 19 のタイルを拡大して使う。
@@ -371,7 +415,7 @@ function currentRoute() {
 function renderAll() {
   t = makeT(state.lang);
   document.documentElement.lang = state.lang;
-  document.title = t('title');
+  document.title = `${t('title')} ${t(`area_${state.area}`)}`;
   document.body.classList.toggle('nav-on', state.navMode);
   drawNetwork();
   drawPois();
@@ -395,7 +439,14 @@ function renderChrome() {
     renderAll();
   };
 
-  document.getElementById('title').textContent = t('title');
+  const areaSel = document.getElementById('areas');
+  areaSel.setAttribute('aria-label', t('area_pick'));
+  areaSel.innerHTML = AREAS.map((a) =>
+    `<option value="${a}"${a === state.area ? ' selected' : ''}>${t(`area_${a}`)}</option>`).join('');
+  areaSel.onchange = (e) => switchArea(e.target.value);
+
+  // 作品名は共通で、地名を後ろに足す。地図が変わったことが見出しで分かるように。
+  document.getElementById('title').textContent = `${t('title')} ${t(`area_${state.area}`)}`;
   document.getElementById('subtitle').textContent = t('subtitle');
 
   const floors = ['all', ...G.meta.floors];
