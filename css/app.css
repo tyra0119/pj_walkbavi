@@ -40,6 +40,7 @@ header{
    高さは画面の 4 割程度。大きすぎると下の操作が遠くなり、小さすぎると経路が読めない。 */
 #map{height:40vh;min-height:230px;max-height:420px;background:#dfe3e8}
 @media(min-width:900px){#map{height:46vh}}
+
 /* 案内中は凡例やデータ出典が出ていると手順が埋もれる */
 body.nav-on footer{display:none}
 
@@ -215,7 +216,6 @@ footer>div{margin-bottom:10px}
 #source a{color:var(--accent)}
 
 
-
 /* Leaflet のピン */
 .poi-pin,.ev-pin,.end-pin{
   display:flex;align-items:center;justify-content:center;
@@ -314,3 +314,29 @@ footer>div{margin-bottom:10px}
 }
 .leaflet-control-zoom a:last-child{border-bottom:0}
 .leaflet-control-attribution{font-size:10px}
+
+/* PC では左に地図、右に操作。
+   縦に積むと、横幅のある画面ほど地図が画面のごく一部にしかならない。経路の形が
+   この作品の中身なので、広い画面では地図に高さを全部渡して、操作は右の列に寄せる。
+   1024px 未満（スマホ・タブレット縦）は今までどおり 1 列で、ページ全体がスクロールする。 */
+@media(min-width:1024px){
+  :root{--side:clamp(360px,32vw,460px)}
+  body{
+    height:100dvh;overflow:hidden;padding-bottom:0;
+    display:flex;flex-direction:column;
+  }
+  header{flex:0 0 auto}
+  .cols{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--side)}
+  .mapcol{display:flex;flex-direction:column;min-height:0}
+  /* 階層バーは地図の上に出す。1 列のときは地図を追い出しても残るよう下に貼って
+     いたが、PC では地図が流れていかないので、上に置いたほうが視線が動かない。 */
+  .floorbar{order:1;position:static;box-shadow:none}
+  #map{order:2;flex:1;height:auto;min-height:0;max-height:none}
+  /* 右の列だけがスクロールする。地図は動かない。 */
+  .sidecol{overflow-y:auto;overscroll-behavior:contain;border-left:1px solid var(--line)}
+  main,footer{max-width:none;margin:0}
+  /* 案内の操作ボタンは右の列の幅に合わせる。画面いっぱいに伸ばすと、
+     押す場所が地図の下にまで来て、何に対する操作なのか分からなくなる。 */
+  .navctl{left:auto;right:0;width:var(--side)}
+  body.nav-on .sidecol{padding-bottom:96px}
+}
