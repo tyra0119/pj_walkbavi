@@ -1,6 +1,6 @@
-import { Graph, RT, PROFILES, makeProfile } from './router.js?v=6a9020b6';
-import { LANGS, makeT, floorName } from './i18n.js?v=6a9020b6';
-import { verticalSVG } from './icons.js?v=6a9020b6';
+import { Graph, RT, PROFILES, makeProfile } from './router.js?v=36a91ce8';
+import { LANGS, makeT, floorName } from './i18n.js?v=36a91ce8';
+import { verticalSVG } from './icons.js?v=36a91ce8';
 
 /* 荷物と移動手段は独立した 2 軸。車椅子で特大スーツケースを持つ人もいるので、
    5 択の排他選択では組み合わせを表現できない。条件は AND で掛け合わせる。 */
@@ -23,7 +23,7 @@ const AREAS = ['kawasaki', 'ariake'];
 
 /* 公開時に tools/publish.py が ?v=版 を入れる。ここが空でも動くが、
    訪問者のブラウザが古い地図を使い続けることがある。 */
-const DATA_V = '?v=6a9020b6';
+const DATA_V = '?v=36a91ce8';
 
 const KIND_ICON = { gate: '🎫', entrance: '🚪', bus: '🚌', dest: '🏬', elevator: '🛗' };
 const KIND_ORDER = ['gate', 'entrance', 'bus', 'dest', 'elevator'];
